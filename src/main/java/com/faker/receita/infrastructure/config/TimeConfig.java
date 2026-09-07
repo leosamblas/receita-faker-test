@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 public class TimeConfig {
 
     @Bean
-    public Clock clock(@Value("${app.timezone:America/Sao_Paulo}") String timezone) {
+    public Clock clock(@Value("${spring.jackson.time-zone:America/Sao_Paulo}") String timezone) {
         return Clock.system(ZoneId.of(timezone));
     }
 }
