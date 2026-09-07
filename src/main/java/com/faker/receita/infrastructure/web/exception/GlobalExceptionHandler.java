@@ -11,16 +11,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.faker.receita.domain.exception.DomainException;
 import com.faker.receita.domain.exception.InvalidDocumentException;
 
+import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
     private final Clock clock;
-
-    public GlobalExceptionHandler(Clock clock) {
-        this.clock = clock;
-    }
 
     public GlobalExceptionHandler() {
         this(Clock.systemDefaultZone());

@@ -29,7 +29,7 @@ public record PessoaJuridicaResponse(
 ) {
     public static PessoaJuridicaResponse fromDomain(PessoaJuridica domain) {
         List<SocioDto> qsaDtos = domain.qsa().stream()
-                .map(s -> new SocioDto(s.nomeSocio(), s.qualificacaoSocio(), s.faixaEtaria()))
+                .map(s -> new SocioDto(s.cpf(), s.nomeSocio(), s.qualificacaoSocio(), s.faixaEtaria()))
                 .toList();
 
         List<CnaeSecundarioDto> cnaeDtos = domain.cnaesSecundarios().stream()

@@ -39,6 +39,8 @@ O **DataFaker** foi projetado para atender cenários de testes integrados, homol
 - **Consistência Geográfica e Cadastral**: Banco interno de municípios com códigos oficiais **IBGE** e **TOM**, vinculando DDD, CEP base e estado (UF).
 - **Idempotência com Persistência Reativa**: Quando um CPF ou CNPJ é gerado ou consultado, ele é persistido no MongoDB (`pessoas_fisicas` e `pessoas_juridicas`). Consultas subsequentes pelo mesmo documento retornam os dados já salvos, garantindo consistência durante fluxos de teste.
 - **Tratamento de Fusos Horários (`ZoneId`)**: Manipulação de datas configurada explicitamente para `America/Sao_Paulo`.
+- **Situações Cadastrais e Óbitos Realistas (PF)**: Randomização com prevalência de status regular e inclusão proporcional de outros status oficiais da Receita Federal (Titular Falecido, Pendente de Regularização, Suspensa, Cancelada e Nula). Em caso de óbito, o status acompanha automaticamente com código `"3"` ("TITULAR FALECIDO") e data de óbito válida (entre a inscrição e a data atual).
+- **Situações Cadastrais da Empresa Realistas (PJ)**: Randomização ponderada abrangendo todos os status oficiais do CNPJ na Receita Federal (Ativa, Baixada, Inapta, Suspensa e Nula), com prevalência do status `"ATIVA"`.
 
 ---
 
@@ -227,6 +229,7 @@ curl -X GET http://localhost:8080/api/v1/pj/04.740.876/0001-25
   "descricaoSituacaoCadastral": "ATIVA",
   "qsa": [
     {
+      "cpf": "52998224725",
       "nomeSocio": "ANA JULIA DE VASCONCELOS CAREPA",
       "qualificacaoSocio": "Conselheiro de Administração",
       "faixaEtaria": "Entre 61 a 70 anos"

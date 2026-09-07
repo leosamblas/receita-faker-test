@@ -15,18 +15,16 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api/v1/pj")
 @Tag(name = "Pessoa Jurídica (PJ)", description = "Endpoints reativos para geração de dados fakes de Pessoa Jurídica em padrão brasileiro (suporte a CNPJ clássico e alfanumérico)")
+@RequiredArgsConstructor
 public class PessoaJuridicaController {
 
     private final PessoaJuridicaUseCase pessoaJuridicaUseCase;
-
-    public PessoaJuridicaController(PessoaJuridicaUseCase pessoaJuridicaUseCase) {
-        this.pessoaJuridicaUseCase = pessoaJuridicaUseCase;
-    }
 
     @GetMapping
     @Operation(

@@ -19,14 +19,17 @@ import com.faker.receita.domain.model.pf.DadosCadastrais;
 import com.faker.receita.domain.model.pf.Email;
 import com.faker.receita.domain.model.pf.Endereco;
 import com.faker.receita.domain.model.pf.PessoaFisica;
+import com.faker.receita.domain.model.pf.SituacaoCadastralPf;
 import com.faker.receita.domain.model.pf.SituacaoReceita;
 import com.faker.receita.domain.model.pf.Telefone;
 import com.faker.receita.domain.validation.CpfValidator;
 
+import lombok.RequiredArgsConstructor;
 import net.datafaker.Faker;
 import reactor.core.publisher.Mono;
 
 @Service
+@RequiredArgsConstructor
 public class PessoaFisicaService implements PessoaFisicaUseCase {
 
     private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -37,31 +40,6 @@ public class PessoaFisicaService implements PessoaFisicaUseCase {
     private final AddressGenerator addressGenerator;
     private final PessoaFisicaRepositoryPort pessoaFisicaRepositoryPort;
     private final Clock clock;
-
-    @org.springframework.beans.factory.annotation.Autowired
-    public PessoaFisicaService(
-            Faker faker,
-            CpfValidator cpfValidator,
-            IbgeTomDatabase ibgeTomDatabase,
-            AddressGenerator addressGenerator,
-            PessoaFisicaRepositoryPort pessoaFisicaRepositoryPort,
-            Clock clock) {
-        this.faker = faker;
-        this.cpfValidator = cpfValidator;
-        this.ibgeTomDatabase = ibgeTomDatabase;
-        this.addressGenerator = addressGenerator;
-        this.pessoaFisicaRepositoryPort = pessoaFisicaRepositoryPort;
-        this.clock = clock;
-    }
-
-    public PessoaFisicaService(
-            Faker faker,
-            CpfValidator cpfValidator,
-            IbgeTomDatabase ibgeTomDatabase,
-            AddressGenerator addressGenerator,
-            PessoaFisicaRepositoryPort pessoaFisicaRepositoryPort) {
-        this(faker, cpfValidator, ibgeTomDatabase, addressGenerator, pessoaFisicaRepositoryPort, Clock.systemDefaultZone());
-    }
 
     @Override
     public Mono<PessoaFisica> generateRandom() {
@@ -115,6 +93,18 @@ public class PessoaFisicaService implements PessoaFisicaUseCase {
 
         String tituloEleitor = String.format("%012d", random.nextLong(100000000000L, 999999999999L));
 
+        // 2. Situação Receita Federal e Óbito
+        LocalDate dataInscricao = dataNascimento.plusYears(random.nextInt(16, Math.min(22, age + 1)));
+        if (dataInscricao.isAfter(today)) {
+            dataInscricao = today.minusMonths(random.nextInt(1, 12));
+        }
+
+        SituacaoCadastralPf situacao = pickSituacaoCadastral(random);
+        String dataObito = null;
+        if (situacao.isFalecido()) {
+            dataObito = generateDataObito(dataInscricao, today, random);
+        }
+
         DadosCadastrais dadosCadastrais = new DadosCadastrais(
                 cleanCpf,
                 cpfFormatado,
@@ -127,17 +117,11 @@ public class PessoaFisicaService implements PessoaFisicaUseCase {
                 "BRASIL",
                 nomeMae,
                 tituloEleitor,
-                null);
-
-        // 2. Situação Receita Federal
-        LocalDate dataInscricao = dataNascimento.plusYears(random.nextInt(16, Math.min(22, age + 1)));
-        if (dataInscricao.isAfter(today)) {
-            dataInscricao = today.minusMonths(random.nextInt(1, 12));
-        }
+                dataObito);
 
         SituacaoReceita situacaoReceita = new SituacaoReceita(
-                "0",
-                "REGULAR",
+                situacao.getCodigo(),
+                situacao.getDescricao(),
                 dataInscricao.format(ISO_DATE),
                 dataInscricao.format(ISO_DATE));
 
@@ -186,5 +170,31 @@ public class PessoaFisicaService implements PessoaFisicaUseCase {
         Contato contato = new Contato(telefones, emails);
 
         return new PessoaFisica(dadosCadastrais, situacaoReceita, endereco, contato);
+    }
+
+    SituacaoCadastralPf pickSituacaoCadastral(ThreadLocalRandom random) {
+        int roll = random.nextInt(100);
+        if (roll < 90) {
+            return SituacaoCadastralPf.REGULAR;
+        } else if (roll < 94) {
+            return SituacaoCadastralPf.TITULAR_FALECIDO;
+        } else if (roll < 97) {
+            return SituacaoCadastralPf.PENDENTE_DE_REGULARIZACAO;
+        } else if (roll < 98) {
+            return SituacaoCadastralPf.SUSPENSA;
+        } else if (roll < 99) {
+            return SituacaoCadastralPf.CANCELADA_POR_MULTIPLICIDADE;
+        } else {
+            return SituacaoCadastralPf.NULA;
+        }
+    }
+
+    String generateDataObito(LocalDate dataInscricao, LocalDate today, ThreadLocalRandom random) {
+        long startEpochDay = dataInscricao.toEpochDay();
+        long endEpochDay = today.toEpochDay();
+        long randomEpochDay = startEpochDay >= endEpochDay
+                ? endEpochDay
+                : random.nextLong(startEpochDay, endEpochDay + 1);
+        return LocalDate.ofEpochDay(randomEpochDay).format(ISO_DATE);
     }
 }

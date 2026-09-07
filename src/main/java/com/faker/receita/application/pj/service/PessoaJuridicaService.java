@@ -18,13 +18,17 @@ import com.faker.receita.domain.exception.InvalidDocumentException;
 import com.faker.receita.domain.model.pj.CnaeSecundario;
 import com.faker.receita.domain.model.pj.PessoaJuridica;
 import com.faker.receita.domain.model.pj.RegimeTributario;
+import com.faker.receita.domain.model.pj.SituacaoCadastralPj;
 import com.faker.receita.domain.model.pj.Socio;
 import com.faker.receita.domain.validation.CnpjValidator;
+import com.faker.receita.domain.validation.CpfValidator;
 
+import lombok.RequiredArgsConstructor;
 import net.datafaker.Faker;
 import reactor.core.publisher.Mono;
 
 @Service
+@RequiredArgsConstructor
 public class PessoaJuridicaService implements PessoaJuridicaUseCase {
 
     private record CnaeInfo(int codigo, String descricao) {}
@@ -63,35 +67,11 @@ public class PessoaJuridicaService implements PessoaJuridicaUseCase {
 
     private final Faker faker;
     private final CnpjValidator cnpjValidator;
+    private final CpfValidator cpfValidator;
     private final IbgeTomDatabase ibgeTomDatabase;
     private final AddressGenerator addressGenerator;
     private final PessoaJuridicaRepositoryPort pessoaJuridicaRepositoryPort;
     private final Clock clock;
-
-    @org.springframework.beans.factory.annotation.Autowired
-    public PessoaJuridicaService(
-            Faker faker,
-            CnpjValidator cnpjValidator,
-            IbgeTomDatabase ibgeTomDatabase,
-            AddressGenerator addressGenerator,
-            PessoaJuridicaRepositoryPort pessoaJuridicaRepositoryPort,
-            Clock clock) {
-        this.faker = faker;
-        this.cnpjValidator = cnpjValidator;
-        this.ibgeTomDatabase = ibgeTomDatabase;
-        this.addressGenerator = addressGenerator;
-        this.pessoaJuridicaRepositoryPort = pessoaJuridicaRepositoryPort;
-        this.clock = clock;
-    }
-
-    public PessoaJuridicaService(
-            Faker faker,
-            CnpjValidator cnpjValidator,
-            IbgeTomDatabase ibgeTomDatabase,
-            AddressGenerator addressGenerator,
-            PessoaJuridicaRepositoryPort pessoaJuridicaRepositoryPort) {
-        this(faker, cnpjValidator, ibgeTomDatabase, addressGenerator, pessoaJuridicaRepositoryPort, Clock.systemDefaultZone());
-    }
 
     @Override
     public Mono<PessoaJuridica> generateRandom() {
@@ -163,7 +143,7 @@ public class PessoaJuridicaService implements PessoaJuridicaUseCase {
         }
 
         // 5. Situação Cadastral
-        String descricaoSituacaoCadastral = random.nextInt(100) < 95 ? "ATIVA" : "SUSPENSA";
+        String descricaoSituacaoCadastral = pickSituacaoCadastral(random).getDescricao();
 
         // 6. QSA (Quadro de Sócios e Administradores)
         int sociosCount = random.nextInt(1, 3);
@@ -176,7 +156,8 @@ public class PessoaJuridicaService implements PessoaJuridicaUseCase {
             String nomeSocio = TextSanitizer.sanitizeToUpper(fName + " " + lName1 + " " + lName2);
             String qualificacao = QUALIFICACOES_SOCIO.get(random.nextInt(QUALIFICACOES_SOCIO.size()));
             String faixaEtaria = FAIXAS_ETARIAS.get(random.nextInt(FAIXAS_ETARIAS.size()));
-            qsa.add(new Socio(nomeSocio, qualificacao, faixaEtaria));
+            String cpf = cpfValidator.generateValidCpf();
+            qsa.add(new Socio(cpf, nomeSocio, qualificacao, faixaEtaria));
         }
 
         // 7. Regime Tributário
@@ -242,6 +223,21 @@ public class PessoaJuridicaService implements PessoaJuridicaUseCase {
             return Math.round(random.nextDouble(100000.0, 1000000.0) * 100.0) / 100.0;
         } else {
             return Math.round(random.nextDouble(1000000.0, 500000000.0) * 100.0) / 100.0;
+        }
+    }
+
+    SituacaoCadastralPj pickSituacaoCadastral(ThreadLocalRandom random) {
+        int roll = random.nextInt(100);
+        if (roll < 90) {
+            return SituacaoCadastralPj.ATIVA;
+        } else if (roll < 95) {
+            return SituacaoCadastralPj.BAIXADA;
+        } else if (roll < 98) {
+            return SituacaoCadastralPj.INAPTA;
+        } else if (roll < 99) {
+            return SituacaoCadastralPj.SUSPENSA;
+        } else {
+            return SituacaoCadastralPj.NULA;
         }
     }
 }

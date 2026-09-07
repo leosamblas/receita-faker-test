@@ -13,7 +13,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import com.faker.receita.domain.exception.InvalidDocumentException;
-import com.faker.receita.domain.validation.CpfValidator;
 
 class CpfValidatorTest {
 

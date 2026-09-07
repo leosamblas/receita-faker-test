@@ -15,8 +15,11 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -28,13 +31,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.faker.receita.application.common.data.AddressGenerator;
 import com.faker.receita.application.common.data.IbgeTomDatabase;
 import com.faker.receita.application.pj.port.out.PessoaJuridicaRepositoryPort;
-import com.faker.receita.application.pj.service.PessoaJuridicaService;
 import com.faker.receita.domain.exception.InvalidDocumentException;
 import com.faker.receita.domain.model.pj.CnaeSecundario;
 import com.faker.receita.domain.model.pj.PessoaJuridica;
 import com.faker.receita.domain.model.pj.RegimeTributario;
+import com.faker.receita.domain.model.pj.SituacaoCadastralPj;
 import com.faker.receita.domain.model.pj.Socio;
 import com.faker.receita.domain.validation.CnpjValidator;
+import com.faker.receita.domain.validation.CpfValidator;
 
 import net.datafaker.Faker;
 import reactor.core.publisher.Mono;
@@ -45,6 +49,7 @@ class PessoaJuridicaServiceTest {
 
     private PessoaJuridicaService service;
     private CnpjValidator cnpjValidator;
+    private CpfValidator cpfValidator;
     private Clock fixedClock;
 
     @Mock
@@ -54,6 +59,7 @@ class PessoaJuridicaServiceTest {
     void setUp() {
         Faker faker = new Faker(Locale.of("pt", "BR"));
         cnpjValidator = new CnpjValidator();
+        cpfValidator = new CpfValidator();
         IbgeTomDatabase ibgeTomDatabase = new IbgeTomDatabase();
         AddressGenerator addressGenerator = new AddressGenerator();
         fixedClock = Clock.fixed(Instant.parse("2024-01-01T12:00:00Z"), ZoneId.of("America/Sao_Paulo"));
@@ -61,6 +67,7 @@ class PessoaJuridicaServiceTest {
         service = new PessoaJuridicaService(
                 faker,
                 cnpjValidator,
+                cpfValidator,
                 ibgeTomDatabase,
                 addressGenerator,
                 pessoaJuridicaRepositoryPort,
@@ -92,8 +99,14 @@ class PessoaJuridicaServiceTest {
                     assertNotNull(response.naturezaJuridica());
                     assertNotNull(response.cnaeFiscal());
                     assertNotNull(response.cnaeFiscalDescricao());
-                    assertTrue(List.of("ATIVA", "SUSPENSA").contains(response.descricaoSituacaoCadastral()));
+                    List<String> situacoesValidas = List.of("ATIVA", "SUSPENSA", "INAPTA", "BAIXADA", "NULA");
+                    assertTrue(situacoesValidas.contains(response.descricaoSituacaoCadastral()));
                     assertFalse(response.qsa().isEmpty());
+                    for (Socio socio : response.qsa()) {
+                        assertNotNull(socio.cpf());
+                        assertEquals(11, socio.cpf().length());
+                        assertTrue(cpfValidator.isValid(socio.cpf()));
+                    }
                     assertFalse(response.cnaesSecundarios().isEmpty());
                     assertFalse(response.regimeTributario().isEmpty());
                     assertEquals(2024, response.regimeTributario().get(0).ano());
@@ -101,6 +114,47 @@ class PessoaJuridicaServiceTest {
                 .verifyComplete();
 
         verify(pessoaJuridicaRepositoryPort, times(1)).save(any(PessoaJuridica.class));
+    }
+
+    @Test
+    @DisplayName("Deve mapear corretamente os valores e códigos da SituacaoCadastralPj")
+    void shouldProperlyMapSituacaoCadastralPjValues() {
+        assertEquals("02", SituacaoCadastralPj.ATIVA.getCodigo());
+        assertEquals("ATIVA", SituacaoCadastralPj.ATIVA.getDescricao());
+
+        assertEquals("01", SituacaoCadastralPj.SUSPENSA.getCodigo());
+        assertEquals("SUSPENSA", SituacaoCadastralPj.SUSPENSA.getDescricao());
+
+        assertEquals("04", SituacaoCadastralPj.INAPTA.getCodigo());
+        assertEquals("INAPTA", SituacaoCadastralPj.INAPTA.getDescricao());
+
+        assertEquals("08", SituacaoCadastralPj.BAIXADA.getCodigo());
+        assertEquals("BAIXADA", SituacaoCadastralPj.BAIXADA.getDescricao());
+
+        assertEquals("03", SituacaoCadastralPj.NULA.getCodigo());
+        assertEquals("NULA", SituacaoCadastralPj.NULA.getDescricao());
+    }
+
+    @Test
+    @DisplayName("Deve sortear os status da empresa cobrindo todos os status e priorizando ATIVA")
+    void shouldCoverAllStatusesInRandomizationWithAtivaAsMajority() {
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        Set<SituacaoCadastralPj> generated = EnumSet.noneOf(SituacaoCadastralPj.class);
+        int ativaCount = 0;
+        int total = 2000;
+
+        for (int i = 0; i < total; i++) {
+            SituacaoCadastralPj status = service.pickSituacaoCadastral(random);
+            generated.add(status);
+            if (status == SituacaoCadastralPj.ATIVA) {
+                ativaCount++;
+            }
+        }
+
+        // ATIVA deve ser a vasta maioria (~90%)
+        assertTrue(ativaCount > total * 0.80, "ATIVA deveria representar a grande maioria dos sorteios");
+        // Todos os status devem ser sorteados com 2000 amostras
+        assertEquals(SituacaoCadastralPj.values().length, generated.size(), "Todos os status cadastrais deveriam ser alcançáveis");
     }
 
     @Test
@@ -126,7 +180,7 @@ class PessoaJuridicaServiceTest {
                 8299702,
                 "Emissão de vales-alimentação, vales-transporte e similares",
                 "ATIVA",
-                List.of(new Socio("ANA JULIA DE VASCONCELOS CAREPA", "Conselheiro de Administração", "Entre 61 a 70 anos")),
+                List.of(new Socio("52998224725", "ANA JULIA DE VASCONCELOS CAREPA", "Conselheiro de Administração", "Entre 61 a 70 anos")),
                 List.of(new CnaeSecundario(6619302, "Correspondentes de instituições financeiras")),
                 List.of(new RegimeTributario(2024, "LUCRO REAL", 1))
         );

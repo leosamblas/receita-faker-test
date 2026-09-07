@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -11,7 +12,6 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 import com.faker.receita.application.pj.port.in.PessoaJuridicaUseCase;
@@ -20,7 +20,6 @@ import com.faker.receita.domain.model.pj.CnaeSecundario;
 import com.faker.receita.domain.model.pj.PessoaJuridica;
 import com.faker.receita.domain.model.pj.RegimeTributario;
 import com.faker.receita.domain.model.pj.Socio;
-import com.faker.receita.infrastructure.web.controller.PessoaJuridicaController;
 import com.faker.receita.infrastructure.web.dto.pj.PessoaJuridicaResponse;
 import com.faker.receita.infrastructure.web.exception.GlobalExceptionHandler;
 
@@ -35,7 +34,7 @@ class PessoaJuridicaControllerTest {
 
     @BeforeEach
     void setUp() {
-        pessoaJuridicaUseCase = Mockito.mock(PessoaJuridicaUseCase.class);
+        pessoaJuridicaUseCase = mock(PessoaJuridicaUseCase.class);
 
         samplePessoaJuridica = new PessoaJuridica(
                 "04740876000125",
@@ -56,7 +55,7 @@ class PessoaJuridicaControllerTest {
                 8299702,
                 "Emissão de vales-alimentação, vales-transporte e similares",
                 "ATIVA",
-                List.of(new Socio("ANA JULIA DE VASCONCELOS CAREPA", "Conselheiro de Administração", "Entre 61 a 70 anos")),
+                List.of(new Socio("52998224725", "ANA JULIA DE VASCONCELOS CAREPA", "Conselheiro de Administração", "Entre 61 a 70 anos")),
                 List.of(new CnaeSecundario(6619302, "Correspondentes de instituições financeiras")),
                 List.of(new RegimeTributario(2024, "LUCRO REAL", 1))
         );
@@ -87,6 +86,7 @@ class PessoaJuridicaControllerTest {
                     assertEquals(6213, response.codigoMunicipio());
                     assertEquals(3505708, response.codigoMunicipioIbge());
                     assertFalse(response.qsa().isEmpty());
+                    assertEquals("52998224725", response.qsa().get(0).cpf());
                     assertFalse(response.cnaesSecundarios().isEmpty());
                     assertFalse(response.regimeTributario().isEmpty());
                 });

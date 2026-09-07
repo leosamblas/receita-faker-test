@@ -44,6 +44,11 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	testLogging {
+		events "passed", "skipped", "failed"
+		showStandardStreams = false
+		exceptionFormat = 'full'
+	}
 }
 
 tasks.named('bootRun') {

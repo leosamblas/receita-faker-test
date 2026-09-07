@@ -1,5 +1,6 @@
 package com.faker.receita.infrastructure.persistence.mongodb.adapter;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import com.faker.receita.application.pf.port.out.PessoaFisicaRepositoryPort;
@@ -10,13 +11,10 @@ import com.faker.receita.infrastructure.persistence.mongodb.repository.SpringDat
 import reactor.core.publisher.Mono;
 
 @Component
+@RequiredArgsConstructor
 public class PessoaFisicaMongoAdapter implements PessoaFisicaRepositoryPort {
 
     private final SpringDataMongoPessoaFisicaRepository repository;
-
-    public PessoaFisicaMongoAdapter(SpringDataMongoPessoaFisicaRepository repository) {
-        this.repository = repository;
-    }
 
     @Override
     public Mono<PessoaFisica> findByNumeroCpf(String numeroCpf) {

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -11,7 +12,6 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 import com.faker.receita.application.pf.port.in.PessoaFisicaUseCase;
@@ -23,7 +23,6 @@ import com.faker.receita.domain.model.pf.Endereco;
 import com.faker.receita.domain.model.pf.PessoaFisica;
 import com.faker.receita.domain.model.pf.SituacaoReceita;
 import com.faker.receita.domain.model.pf.Telefone;
-import com.faker.receita.infrastructure.web.controller.PessoaFisicaController;
 import com.faker.receita.infrastructure.web.dto.pf.PessoaFisicaResponse;
 import com.faker.receita.infrastructure.web.exception.GlobalExceptionHandler;
 
@@ -38,7 +37,7 @@ class PessoaFisicaControllerTest {
 
     @BeforeEach
     void setUp() {
-        pessoaFisicaUseCase = Mockito.mock(PessoaFisicaUseCase.class);
+        pessoaFisicaUseCase = mock(PessoaFisicaUseCase.class);
 
         DadosCadastrais dados = new DadosCadastrais(
                 "52998224725",
