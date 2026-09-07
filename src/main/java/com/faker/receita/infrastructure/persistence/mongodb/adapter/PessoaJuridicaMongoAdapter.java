@@ -1,6 +1,5 @@
 package com.faker.receita.infrastructure.persistence.mongodb.adapter;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import com.faker.receita.application.pj.port.out.PessoaJuridicaRepositoryPort;
@@ -8,6 +7,7 @@ import com.faker.receita.domain.model.pj.PessoaJuridica;
 import com.faker.receita.infrastructure.persistence.mongodb.document.PessoaJuridicaDocument;
 import com.faker.receita.infrastructure.persistence.mongodb.repository.SpringDataMongoPessoaJuridicaRepository;
 
+import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
 @Component
@@ -19,14 +19,14 @@ public class PessoaJuridicaMongoAdapter implements PessoaJuridicaRepositoryPort 
     @Override
     public Mono<PessoaJuridica> findByCnpj(String cnpj) {
         return repository.findByCnpj(cnpj)
-                .map(PessoaJuridicaDocument::toDomain);
+                .map(pj -> pj.toDomain());
     }
 
     @Override
     public Mono<PessoaJuridica> save(PessoaJuridica pessoaJuridica) {
         PessoaJuridicaDocument document = PessoaJuridicaDocument.fromDomain(pessoaJuridica);
         return repository.save(document)
-                .map(PessoaJuridicaDocument::toDomain);
+                .map(pj -> pj.toDomain());
     }
 
     @Override
